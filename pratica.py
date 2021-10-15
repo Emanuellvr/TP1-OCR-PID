@@ -6,6 +6,15 @@ from tkinter import Frame, filedialog
 #from keras.datasets import mnist           #pip install tensorflow     pip install keras
 #from matplotlib import pyplot
 
+'''
+Erros:
+Rever quantização {
+    Remoção de ruído após quantização.
+    Quantização da imagem colorida
+}
+Binarização com imagem colorida (parâmetros do thresholding inválidos)
+'''
+
 class Application(tk.Frame):
     #Construtor do objeto Application
     def __init__(self, master):
@@ -21,38 +30,34 @@ class Application(tk.Frame):
         filename = filedialog.askopenfilename(initialdir = "Prática", title = "Select a image", filetypes = fileTypes)
 
         if filename != '':
-            #self.image = Image.open(filename)
-            #self.atualizarTela()
             self.image = cv2.imread(filename)
             self.convertTkinter(self.image)
     
     #Método para voltar a imagem anterior
     def desfazer(self):
         self.image = self.default
-        self.atualizarTela()
+        self.convertTkinter(self.image)
 
     #Método para converter a imagem para abrir no Tkinter
     def convertTkinter(self, image):
+        self.image = image
         try:
             b,g,r = cv2.split(image)
             image = cv2.merge((r,g,b))
         except:
             print("Conversão inválida (Imagem em tons de cinza).")
 
-        #self.image = Image.fromarray(image)
-        self.image = image
-        self.atualizarTela()
+        self.atualizarTela(image)
 
     #Método para atualizar a label com a imagem
-    def atualizarTela(self):    
-        self.photoImage = ImageTk.PhotoImage(Image.fromarray(self.image))
+    def atualizarTela(self, image):    
+        self.photoImage = ImageTk.PhotoImage(Image.fromarray(image))
         self.lbl_Image.configure(image = self.photoImage)
 
     #Método para converter a imagem para tons de cinza
     def cinza(self):
         try:
             self.default = self.image
-            #aux = np.array(self.image)
             gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
             self.convertTkinter(gray)
         except:
@@ -74,7 +79,6 @@ class Application(tk.Frame):
     def ruido(self):
         try:
             self.default = self.image
-            #aux = np.array(self.image)
             noise = cv2.medianBlur(self.image, 5)
             self.convertTkinter(noise)
         except:
@@ -84,7 +88,6 @@ class Application(tk.Frame):
     def binarizacao(self):
         try:
             self.default = self.image
-            #aux = np.array(self.image)
             thresholding = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             self.convertTkinter(thresholding)
         except:
@@ -129,7 +132,6 @@ class Application(tk.Frame):
         #Label da imagem
         self.lbl_Image = tk.Label(frameMain)
         self.lbl_Image.pack()
-
 
 #Criação do objeto Application e loop principal  
 root = tk.Tk()
