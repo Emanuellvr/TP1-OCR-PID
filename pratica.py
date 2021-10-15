@@ -2,9 +2,9 @@ import numpy as np
 import tkinter as tk
 import cv2
 from PIL import ImageTk, Image
-from tkinter import filedialog
-from keras.datasets import mnist           #pip install tensorflow     pip install keras
-from matplotlib import pyplot
+from tkinter import Frame, filedialog
+#from keras.datasets import mnist           #pip install tensorflow     pip install keras
+#from matplotlib import pyplot
 
 class Application(tk.Frame):
     #Construtor do objeto Application
@@ -21,8 +21,10 @@ class Application(tk.Frame):
         filename = filedialog.askopenfilename(initialdir = "Prática", title = "Select a image", filetypes = fileTypes)
 
         if filename != '':
-            self.image = Image.open(filename)
-            self.atualizarTela()
+            #self.image = Image.open(filename)
+            #self.atualizarTela()
+            self.image = cv2.imread(filename)
+            self.convertTkinter(self.image)
     
     #Método para voltar a imagem anterior
     def desfazer(self):
@@ -31,44 +33,69 @@ class Application(tk.Frame):
 
     #Método para converter a imagem para abrir no Tkinter
     def convertTkinter(self, image):
-        self.image = Image.fromarray(image)
+        try:
+            b,g,r = cv2.split(image)
+            image = cv2.merge((r,g,b))
+        except:
+            print("Conversão inválida (Imagem em tons de cinza).")
+
+        #self.image = Image.fromarray(image)
+        self.image = image
         self.atualizarTela()
 
     #Método para atualizar a label com a imagem
     def atualizarTela(self):    
-        self.photoImage = ImageTk.PhotoImage(self.image)
+        self.photoImage = ImageTk.PhotoImage(Image.fromarray(self.image))
         self.lbl_Image.configure(image = self.photoImage)
 
     #Método para converter a imagem para tons de cinza
     def cinza(self):
-        if self.image != None:
+        try:
             self.default = self.image
-            aux = np.array(self.image)
-            gray = cv2.cvtColor(aux, cv2.COLOR_BGR2GRAY)
+            #aux = np.array(self.image)
+            gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
             self.convertTkinter(gray)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para quantizar a imagem
-    def quantizacao(self):
-        if self.image != None:
+    def quantizacao(self, n):
+        try:
             self.default = self.image
+            aux = np.float32(self.image)
+            bucket = 256 / n
+            quantizacao = aux / bucket
+            quantizado = np.uint8(quantizacao) * bucket
+            self.convertTkinter(quantizado)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
 
-    #Método para carregar base de dados mnist
-    def load_mnist_dataset(self):
-        # load the MNIST dataset and stack the training data and testing
-        # data together (we'll create our own training and testing splits
-        # later in the project)
-        (train_X, train_y), (test_X, test_y) = mnist.load_data()
-        # return a 2-tuple of the MNIST data and labels
+    #Método para remoção de ruído
+    def ruido(self):
+        try:
+            self.default = self.image
+            #aux = np.array(self.image)
+            noise = cv2.medianBlur(self.image, 5)
+            self.convertTkinter(noise)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
 
-        print('X_train: ' + str(train_X.shape))
-        print('Y_train: ' + str(train_y.shape))
-        print('X_test:  '  + str(test_X.shape))
-        print('Y_test:  '  + str(test_y.shape))
-        # return (data, labels)
+    #Método para binarizar a imagem
+    def binarizacao(self):
+        try:
+            self.default = self.image
+            #aux = np.array(self.image)
+            thresholding = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            self.convertTkinter(thresholding)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para criação do Canvas e menus
     def Widgets(self):
         self.master.attributes("-fullscreen", True)           
+
+        frameMain = Frame(self.master)
+        frameMain.pack()
 
         menu = tk.Menu(self.master)
         self.master.config(menu = menu)
@@ -83,19 +110,24 @@ class Application(tk.Frame):
 
         #Submenu Quantização
         quantMenu = tk.Menu(menu, tearoff = 0)
-        quantMenu.add_command(label = '128', command = self.load_mnist_dataset)
-        #quantMenu.add_command(label = '64', command = self.quantizacao)
-        #quantMenu.add_command(label = '32', command = self.quantizacao)
-        #quantMenu.add_command(label = '16', command = self.quantizacao)
+        quantMenu.add_command(label = '128', command = lambda: self.quantizacao(128))
+        quantMenu.add_command(label = '64', command = lambda: self.quantizacao(64))
+        quantMenu.add_command(label = '32', command = lambda: self.quantizacao(32))
+        quantMenu.add_command(label = '16', command = lambda: self.quantizacao(16))
+        quantMenu.add_command(label = '8', command = lambda: self.quantizacao(8))
+        quantMenu.add_command(label = '4', command = lambda: self.quantizacao(4))
+        quantMenu.add_command(label = '2', command = lambda: self.quantizacao(2))
 
         #Menu Ferramentas
         toolsMenu = tk.Menu(menu, tearoff = 0)
         menu.add_cascade(label = "Ferramentas", menu = toolsMenu)
-        toolsMenu.add_command(label = "Tons de Cinza", command = self.cinza)
+        toolsMenu.add_command(label = "Tons de cinza", command = self.cinza)
         toolsMenu.add_cascade(label = 'Quantização', menu = quantMenu)
+        toolsMenu.add_command(label = "Remoção de ruído", command = self.ruido)
+        toolsMenu.add_command(label = "Binarização", command = self.binarizacao)
 
         #Label da imagem
-        self.lbl_Image = tk.Label(self.master)
+        self.lbl_Image = tk.Label(frameMain)
         self.lbl_Image.pack()
 
 
