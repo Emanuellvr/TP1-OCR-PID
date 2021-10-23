@@ -4,6 +4,7 @@ import cv2
 from PIL import ImageTk, Image
 from tkinter import Frame, filedialog
 from sklearn.cluster import MiniBatchKMeans
+from scipy.ndimage import interpolation as inter
 #from keras.datasets import mnist           #pip install tensorflow     pip install keras
 from matplotlib import pyplot
 
@@ -55,7 +56,7 @@ class Application(tk.Frame):
         self.atualizarTela(image)
 
     #Método para atualizar a label com a imagem
-    def atualizarTela(self, image):    
+    def atualizarTela(self, image):
         self.photoImage = ImageTk.PhotoImage(Image.fromarray(image))
         self.lbl_Image.configure(image = self.photoImage)
 
@@ -101,11 +102,11 @@ class Application(tk.Frame):
 
     #Método para remoção de ruído
     def ruido(self):
-        #try:
+        try:
             self.default = self.image
             noise = cv2.medianBlur(self.image, 5)
             self.convertTkinter(noise)
-        #except:
+        except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para binarizar a imagem
@@ -149,6 +150,39 @@ class Application(tk.Frame):
             self.default = self.image
             invert = 255 - self.image
             self.convertTkinter(invert)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    def find_score(self, arr, angle):
+        data = inter.rotate(arr, angle, reshape=False, order=0)
+        hist = np.sum(data, axis=1)
+        score = np.sum((hist[1:] - hist[:-1]) ** 2)
+        return hist, score
+    
+    def deskew(self):
+        image = self.image
+        delta = 1
+        limit = 5
+        angles = np.arange(-limit, limit+delta, delta)
+        scores = []
+        for angle in angles:
+            hist, score = self.find_score(image, angle)
+            scores.append(score)
+        best_score = max(scores)
+        best_angle = angles[scores.index(best_score)]
+        #print('Best angle: {}'.formate(best_angle))
+        # correct skew
+        data = inter.rotate(image, best_angle, reshape=False, order=0)
+        skew = Image.fromarray((255 * data).astype("uint8")).convert("RGB")
+        self.atualizarTela(skew)
+
+    #Método para esqueletização da imagem
+    def esqueletizacao(self):
+        try:
+            self.default = self.image
+            kernel = np.ones((5,5),np.uint8)
+            erode = cv2.erode(self.image, kernel, iterations = 1)
+            self.convertTkinter(erode)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -224,7 +258,8 @@ class Application(tk.Frame):
         toolsMenu.add_command(label = "Remoção de ruído", command = self.ruido)
         toolsMenu.add_command(label = "Binarização", command = self.binarizacao)
         toolsMenu.add_command(label = "Inverter tons", command = self.inverterTons)
-        toolsMenu.add_command(label = "Projeção", command = self.projecao)
+        toolsMenu.add_command(label = "Projeção", command = self.deskew)
+        toolsMenu.add_command(label = "Esqueletização", command = self.esqueletizacao)
 
         #Submenu Rotação
         rotationMenu = tk.Menu(menu, tearoff = 0)
