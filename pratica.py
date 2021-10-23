@@ -3,16 +3,21 @@ import tkinter as tk
 import cv2
 from PIL import ImageTk, Image
 from tkinter import Frame, filedialog
+from sklearn.cluster import MiniBatchKMeans
 #from keras.datasets import mnist           #pip install tensorflow     pip install keras
 #from matplotlib import pyplot
 
 '''
+Git:
+git pull                        Atualiza com a versão do github.
+git add 'nomeDoArquivo'         Prepara o arquivo para ser enviado.
+git commit -m "Comentário"      Comita o arquivo.
+git push                        Envia o arquivo para o github.
+
 Erros:
-Rever quantização {
-    Remoção de ruído após quantização.
-    Quantização da imagem colorida
-}
-Binarização com imagem colorida (parâmetros do thresholding inválidos)
+Rever quantização (uma solução pra colorida e uma solução para preto e branco) {
+    Na quantização para a imagem preto e branco: Remoção de ruído após quantização.
+}           
 '''
 
 class Application(tk.Frame):
@@ -63,7 +68,7 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
-    #Método para quantizar a imagem
+    #Método para quantizar a imagem (preto e branco)
     def quantizacao(self, n):
         try:
             self.default = self.image
@@ -74,6 +79,25 @@ class Application(tk.Frame):
             self.convertTkinter(quantizado)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
+    '''
+    #Método para quantizar a imagem (colorida)
+    def quantizacao(self, n):
+        #try:
+            self.default = self.image
+            (h, w) = self.image.shape[:2]
+            image = cv2.cvtColor(self.image, cv2.COLOR_BGR2LAB)
+            image = image.reshape((image.shape[0] * image.shape[1], 3))
+            clt = MiniBatchKMeans(n)
+            labels = clt.fit_predict(image)
+            quantizado = clt.cluster_centers_.astype("uint8")[labels]
+            quantizado = quantizado.reshape((h, w, 3))
+            quantizado = cv2.cvtColor(quantizado, cv2.COLOR_LAB2BGR)
+            #image = image.reshape((h, w, 3))
+            #image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
+            self.convertTkinter(quantizado)
+        #except:
+            #print("Erro: Nenhuma imagem foi selecionada.")
+    '''
 
     #Método para remoção de ruído
     def ruido(self):
@@ -90,6 +114,42 @@ class Application(tk.Frame):
             self.default = self.image
             thresholding = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             self.convertTkinter(thresholding)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para rotacionar a imagem 90 graus para a esquerda
+    def rot90anti(self):
+        try:
+            self.default = self.image
+            rotate = cv2.rotate(self.image, cv2.ROTATE_90_CLOCKWISE)
+            self.convertTkinter(rotate)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para rotacionar a imagem 90 graus para a direita
+    def rot90hor(self):
+        try:
+            self.default = self.image
+            rotate = cv2.rotate(self.image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            self.convertTkinter(rotate)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para inverter a imagem horizontalmente
+    def invertHor(self):
+        try:
+            self.default = self.image
+            invert = cv2.flip(self.image, 0)
+            self.convertTkinter(invert)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+        #Método para inverter a imagem verticalmente
+    def invertVert(self):
+        try:
+            self.default = self.image
+            invert = cv2.flip(self.image, 1)
+            self.convertTkinter(invert)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -128,6 +188,22 @@ class Application(tk.Frame):
         toolsMenu.add_cascade(label = 'Quantização', menu = quantMenu)
         toolsMenu.add_command(label = "Remoção de ruído", command = self.ruido)
         toolsMenu.add_command(label = "Binarização", command = self.binarizacao)
+
+        #Submenu Rotação
+        rotationMenu = tk.Menu(menu, tearoff = 0)
+        rotationMenu.add_command(label = "90° esquerda", command = self.rot90anti)
+        rotationMenu.add_command(label = "90° direita", command = self.rot90hor)
+
+        #Submenu Eixo
+        flipMenu = tk.Menu(menu, tearoff = 0)
+        flipMenu.add_command(label = "Horizontal", command = self.invertHor)
+        flipMenu.add_command(label = "Vertical", command = self.invertVert)
+
+        #Menu Visualisação
+        visualMenu = tk.Menu(menu, tearoff = 0)
+        menu.add_cascade(label = "Visualização", menu = visualMenu)
+        visualMenu.add_cascade(label = "Rotação", menu = rotationMenu)
+        visualMenu.add_cascade(label = "Inverter eixo", menu = flipMenu)
 
         #Label da imagem
         self.lbl_Image = tk.Label(frameMain)
