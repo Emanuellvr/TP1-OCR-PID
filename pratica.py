@@ -5,7 +5,7 @@ from PIL import ImageTk, Image
 from tkinter import Frame, filedialog
 from sklearn.cluster import MiniBatchKMeans
 #from keras.datasets import mnist           #pip install tensorflow     pip install keras
-#from matplotlib import pyplot
+from matplotlib import pyplot
 
 '''
 Git:
@@ -32,7 +32,7 @@ class Application(tk.Frame):
     #Método para inserir imagem
     def inserir(self):
         fileTypes = [("Image PNG, JPG", ".png .jpg")]
-        filename = filedialog.askopenfilename(initialdir = "Prática", title = "Select a image", filetypes = fileTypes)
+        filename = filedialog.askopenfilename(title = "Select a image", filetypes = fileTypes)
 
         if filename != '':
             self.image = cv2.imread(filename)
@@ -76,7 +76,7 @@ class Application(tk.Frame):
             bucket = 256 / n
             quantizacao = aux / bucket
             quantizado = np.uint8(quantizacao) * bucket
-            self.convertTkinter(quantizado)
+            self.convertTkinter(np.array(quantizado))
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
     '''
@@ -101,11 +101,11 @@ class Application(tk.Frame):
 
     #Método para remoção de ruído
     def ruido(self):
-        try:
+        #try:
             self.default = self.image
             noise = cv2.medianBlur(self.image, 5)
             self.convertTkinter(noise)
-        except:
+        #except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para binarizar a imagem
@@ -114,6 +114,41 @@ class Application(tk.Frame):
             self.default = self.image
             thresholding = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             self.convertTkinter(thresholding)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para extrair a projeção horizontal da imagem
+    def projHorizontal(self):
+        try:
+            return np.sum(self.image, axis = 1, keepdims = True) / 255
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para extrair a projeção vertical da imagem
+    def projVertical(self):
+        try:
+            return np.sum(self.image, axis = 0, keepdims = True) / 255
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para extrair as projeções da imagem e concatená-las
+    def projecao(self):
+        #try:
+            self.default = self.image
+            horizontal = self.projHorizontal()
+            vertical = self.projVertical
+            projection = horizontal + vertical
+            pyplot.plot(projection)
+            pyplot.show()
+        #except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para inverter a paleta de cores da imagem
+    def inverterTons(self):
+        try:
+            self.default = self.image
+            invert = 255 - self.image
+            self.convertTkinter(invert)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -188,6 +223,8 @@ class Application(tk.Frame):
         toolsMenu.add_cascade(label = 'Quantização', menu = quantMenu)
         toolsMenu.add_command(label = "Remoção de ruído", command = self.ruido)
         toolsMenu.add_command(label = "Binarização", command = self.binarizacao)
+        toolsMenu.add_command(label = "Inverter tons", command = self.inverterTons)
+        toolsMenu.add_command(label = "Projeção", command = self.projecao)
 
         #Submenu Rotação
         rotationMenu = tk.Menu(menu, tearoff = 0)
