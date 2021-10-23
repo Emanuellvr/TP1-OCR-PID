@@ -162,7 +162,7 @@ class Application(tk.Frame):
     def deskew(self):
         image = self.image
         delta = 1
-        limit = 5
+        limit = 30
         angles = np.arange(-limit, limit+delta, delta)
         scores = []
         for angle in angles:
@@ -173,8 +173,8 @@ class Application(tk.Frame):
         #print('Best angle: {}'.formate(best_angle))
         # correct skew
         data = inter.rotate(image, best_angle, reshape=False, order=0)
-        skew = Image.fromarray((255 * data).astype("uint8")).convert("RGB")
-        self.atualizarTela(skew)
+        # skew = Image.fromarray((255 * data).astype("uint8")).convert("RGB")
+        self.convertTkinter(data)
 
     #Método para esqueletização da imagem
     def esqueletizacao(self):
@@ -263,7 +263,7 @@ class Application(tk.Frame):
 
         #Submenu Rotação
         rotationMenu = tk.Menu(menu, tearoff = 0)
-        rotationMenu.add_command(label = "90° esquerda", command = self.rot90anti)
+        rotationMenu.add_command(label = "Rotação", command = self.deskew)
         rotationMenu.add_command(label = "90° direita", command = self.rot90hor)
 
         #Submenu Eixo
