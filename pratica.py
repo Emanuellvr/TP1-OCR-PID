@@ -1,3 +1,4 @@
+import svm
 import cv2
 import numpy as np
 import tkinter as tk
@@ -7,8 +8,7 @@ from numpy.core.defchararray import asarray
 from sklearn.cluster import MiniBatchKMeans
 from scipy.ndimage import interpolation as inter
 from matplotlib import pyplot as plt
-# from keras.datasets import mnist           #pip install tensorflow     pip install keras
-
+from keras.datasets import mnist           #pip install tensorflow     pip install keras
 
 '''
 Git:
@@ -128,29 +128,28 @@ class Application(tk.Frame):
             print("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para extrair a projeção horizontal da imagem
-    def projHorizontal(self):
+    def projHorizontal(self, image):
         try:
-            print(np.sum(self.image, axis=1, keepdims=True) / 255)
-            return np.sum(self.image, axis=1, keepdims=True) / 255
+            #print(np.sum(image, axis=1, keepdims=True) / 255)
+            return np.sum(image, axis=1, keepdims=True) / 255
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para extrair a projeção vertical da imagem
-    def projVertical(self):
+    def projVertical(self, image):
         try:
-            print(np.sum(self.image, axis=0, keepdims=True) / 255)
-            return np.sum(self.image, axis=0, keepdims=True) / 255
+            #print(np.sum(image, axis=0, keepdims=True) / 255)
+            return np.sum(image, axis=0, keepdims=True) / 255
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para extrair as projeções da imagem e concatená-las
-    def projecao(self):
+    def projecao(self, image):
         try:
-            self.default = self.image
-            horizontal = self.projHorizontal()
-            vertical = self.projVertical()
+            horizontal = self.projHorizontal(image)
+            vertical = self.projVertical(image)
             concatenate = np.concatenate((np.array(horizontal).transpose(), np.array(vertical)), axis=None)
-            print(concatenate)
+            return concatenate
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -235,6 +234,28 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
+    #Menu para import do dataset Keras
+    def loadDataset(self):
+        (train_X, self.train_Y), (test_X, self.test_Y) = mnist.load_data()
+        #train_X = train_X.reshape((train_X.shape[0]), 28, 28, 1)
+        #test_X = test_X.reshape((test_X.shape[0]), 28, 28, 1)
+        self. ptrain_X = []
+        self.ptest_X = []
+
+        for i in range(len(train_X)):
+            train_X[i] = cv2.threshold(train_X[i], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            self.ptrain_X.append(self.projecao(train_X[i]))
+
+        for j in range(len(test_X)):
+            test_X[j] = cv2.threshold(test_X[j], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            self.ptest_X.append(self.projecao(test_X[j]))
+
+        print("Pronto para treino")
+
+    #Método para treinar e testar uma SVM
+    def trainSVM(self):
+        svm.SVM(self.ptrain_X, self.train_Y, self.ptest_X, self.test_Y)
+
     #Método para criação do Canvas e menus
     def Widgets(self):
         self.master.attributes("-fullscreen", True)
@@ -263,12 +284,6 @@ class Application(tk.Frame):
         quantMenu.add_command(label="4", command=lambda: self.quantizacao(4))
         quantMenu.add_command(label="2", command=lambda: self.quantizacao(2))
 
-        #SubMenu Projeção
-        projMenu = tk.Menu(menu, tearoff=0)
-        projMenu.add_command(label="Horizontal", command=self.projHorizontal)
-        projMenu.add_command(label="Vertical", command=self.projVertical)
-        projMenu.add_command(label="Horizontal + Vertical", command=self.projecao)
-
         #Menu Ferramentas
         toolsMenu = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label="Ferramentas", menu=toolsMenu)
@@ -279,7 +294,6 @@ class Application(tk.Frame):
         toolsMenu.add_command(label="Erosão", command=self.erosao)
         toolsMenu.add_command(label="Inverter tons", command=self.inverterTons)
         toolsMenu.add_command(label="Correção de ângulo", command=self.correcaoAngulo)
-        toolsMenu.add_cascade(label="Projeção", menu=projMenu)
 
         #Submenu Rotação
         rotationMenu = tk.Menu(menu, tearoff=0)
@@ -297,6 +311,16 @@ class Application(tk.Frame):
         visualMenu.add_cascade(label="Rotação", menu=rotationMenu)
         visualMenu.add_cascade(label="Inverter eixo", menu=flipMenu)
 
+        #Menu Import Keras
+        kerasMenu = tk.Menu(menu, tearoff=0)
+        menu.add_cascade(label="Import Keras", menu=kerasMenu)
+        kerasMenu.add_command(label="Iniciar", command=self.loadDataset)
+
+        #Menu Redes
+        redeMenu = tk.Menu(menu, tearoff=0)
+        menu.add_cascade(label="Redes", menu=redeMenu)
+        redeMenu.add_command(label="SVM", command=self.trainSVM)
+
         #Label da imagem
         self.lbl_Image = tk.Label(frameMain)
         self.lbl_Image.pack()
@@ -304,5 +328,5 @@ class Application(tk.Frame):
 #Criação do objeto Application e loop principal
 root = tk.Tk()
 Application(root)
-root.title("Processamento de Imagens")  # Nome da janela
-root.mainloop()
+root.title("Processamento de Imagens")  #Nome da janela
+root.mainloop() 
