@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import tkinter as tk
 from PIL import ImageTk, Image
-from tkinter import Frame, filedialog
+from tkinter import Frame, StringVar, filedialog
 from numpy.core.defchararray import asarray
 from sklearn.cluster import MiniBatchKMeans
 from scipy.ndimage import interpolation as inter
@@ -66,6 +66,13 @@ class Application(tk.Frame):
         self.photoImage = ImageTk.PhotoImage(Image.fromarray(image))
         self.lbl_Image.configure(image=self.photoImage)
 
+    #Método para redimensionar o tamanho da imagem
+    def redimesionar(self):
+        try:
+            return cv2.resize(self.image, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
     #Método para converter a imagem para tons de cinza
     def cinza(self):
         try:
@@ -76,6 +83,7 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
+    '''
     #Método para quantizar a imagem (preto e branco)
     def quantizacao(self, n):
         try:
@@ -88,7 +96,6 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
-    '''
     #Método para quantizar a imagem (colorida)
     def quantizacao(self, n):
         #try:
@@ -130,7 +137,6 @@ class Application(tk.Frame):
     #Método para extrair a projeção horizontal da imagem
     def projHorizontal(self, image):
         try:
-            #print(np.sum(image, axis=1, keepdims=True) / 255)
             return np.sum(image, axis=1, keepdims=True) / 255
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
@@ -138,7 +144,6 @@ class Application(tk.Frame):
     #Método para extrair a projeção vertical da imagem
     def projVertical(self, image):
         try:
-            #print(np.sum(image, axis=0, keepdims=True) / 255)
             return np.sum(image, axis=0, keepdims=True) / 255
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
@@ -250,11 +255,24 @@ class Application(tk.Frame):
             test_X[j] = cv2.threshold(test_X[j], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             self.ptest_X.append(self.projecao(test_X[j]))
 
-        print("Pronto para treino")
+        self.redeSVM = svm.SVM(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
+        print("Importação completa")
 
     #Método para treinar e testar uma SVM
     def trainSVM(self):
-        svm.SVM(self.ptrain_X, self.train_Y, self.ptest_X, self.test_Y)
+        self.redeSVM.train()
+
+    #Método para carregar o treino da SVM
+    def loadSVM(self):
+        self.redeSVM.load()
+
+    #Método para testar a imagem atual na SVM
+    def testSVM(self):
+        self.redeSVM.test([self.projecao(self.redimesionar())])
+    
+    #Método para a modificação da label inferior
+    def setText(self, text):
+        self.var.set(text)
 
     #Método para criação do Canvas e menus
     def Widgets(self):
@@ -262,6 +280,8 @@ class Application(tk.Frame):
 
         frameMain = Frame(self.master)
         frameMain.pack()
+        frameMonitor = Frame(self.master)
+        frameMonitor.pack()
 
         menu = tk.Menu(self.master)
         self.master.config(menu=menu)
@@ -311,19 +331,25 @@ class Application(tk.Frame):
         visualMenu.add_cascade(label="Rotação", menu=rotationMenu)
         visualMenu.add_cascade(label="Inverter eixo", menu=flipMenu)
 
-        #Menu Import Keras
-        kerasMenu = tk.Menu(menu, tearoff=0)
-        menu.add_cascade(label="Import Keras", menu=kerasMenu)
-        kerasMenu.add_command(label="Iniciar", command=self.loadDataset)
+        #Submenu Redes
+        svmMenu = tk.Menu(menu, tearoff=0)
+        svmMenu.add_command(label="Treinar SVM", command=self.trainSVM)
+        svmMenu.add_command(label="Carregar treino", command=self.loadSVM)
+        svmMenu.add_command(label="Testar imagem", command=self.testSVM)
 
         #Menu Redes
         redeMenu = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label="Redes", menu=redeMenu)
-        redeMenu.add_command(label="SVM", command=self.trainSVM)
+        redeMenu.add_command(label="Import Dataset", command=self.loadDataset)
+        redeMenu.add_cascade(label="SVM", menu=svmMenu)
 
         #Label da imagem
         self.lbl_Image = tk.Label(frameMain)
         self.lbl_Image.pack()
+
+        self.var = StringVar()
+        self.lbl_Monitor = tk.Label(frameMonitor, textvariable=self.var)
+        self.lbl_Monitor.pack()
 
 #Criação do objeto Application e loop principal
 root = tk.Tk()
