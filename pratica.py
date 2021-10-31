@@ -248,10 +248,12 @@ class Application(tk.Frame):
         self.ptest_X = []
 
         for i in range(len(train_X)):
+            train_X[i] = 255 - train_X[i]
             train_X[i] = cv2.threshold(train_X[i], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             self.ptrain_X.append(self.projecao(train_X[i]))
 
         for j in range(len(test_X)):
+            test_X[j] = 255 - test_X[j]
             test_X[j] = cv2.threshold(test_X[j], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             self.ptest_X.append(self.projecao(test_X[j]))
 
