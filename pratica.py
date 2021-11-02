@@ -1,4 +1,3 @@
-
 import svm
 import mlp
 import cv2
@@ -48,7 +47,7 @@ class Application(tk.Frame):
         if filename != '':
             self.image = cv2.imread(filename)
             self.cinza()
-            self.binarizacao()
+            #self.binarizacao()
             self.convertTkinter(self.image)
 
     #Método para voltar a imagem anterior
@@ -95,7 +94,7 @@ class Application(tk.Frame):
             self.default = self.image
             thresholding = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             self.image = thresholding
-            #self.convertTkinter(thresholding)
+            self.convertTkinter(thresholding)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -137,7 +136,6 @@ class Application(tk.Frame):
         #     plt.imshow(self.preprocessed_digits[i], cmap="gray")
         #     plt.show()
 
-    '''
     #Método para quantizar a imagem (preto e branco)
     def quantizacao(self, n):
         try:
@@ -150,6 +148,7 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
+    '''
     #Método para quantizar a imagem (colorida)
     def quantizacao(self, n):
         #try:
@@ -306,16 +305,16 @@ class Application(tk.Frame):
 
         train_X = 255 - train_X
         for i in range(len(train_X)):
-            #train_X[i] = 255 - train_X[i]
+            train_X[i] = 255 - train_X[i]
             train_X[i] = cv2.threshold(train_X[i], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            train_X[i] = self.testeCorrecaoAngulo(train_X[i])
+            #train_X[i] = self.testeCorrecaoAngulo(train_X[i])
             self.ptrain_X.append(self.projecao(train_X[i]))
 
         test_X = 255 - test_X
         for j in range(len(test_X)):
-            #test_X[j] = 255 - test_X[j]
+            test_X[j] = 255 - test_X[j]
             test_X[j] = cv2.threshold(test_X[j], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            test_X[j] = self.testeCorrecaoAngulo(test_X[j])
+            #test_X[j] = self.testeCorrecaoAngulo(test_X[j])
             self.ptest_X.append(self.projecao(test_X[j]))
         
         final = time.time()
@@ -339,7 +338,7 @@ class Application(tk.Frame):
     def testSVM(self):
         projecao = []
 
-        for i in range(len(self.preprocessed_digits)):
+        for i in range(len(self.preprocessed_digits)-1, -1, -1):
             projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
         self.redeSVM.test(projecao)
         #projecao = np.array(self.projecao(self.redimesionar())).astype('int')
@@ -357,7 +356,7 @@ class Application(tk.Frame):
     def testMLP(self):
         projecao = []
 
-        for i in range(len(self.preprocessed_digits)):
+        for i in range(len(self.preprocessed_digits)-1, -1, -1):
             projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
         self.redeMLP.test(projecao)
         #projecao = np.array(self.projecao(self.redimesionar())).astype('int')
@@ -388,21 +387,21 @@ class Application(tk.Frame):
         optionMenu.add_command(label="Sair", command=self.master.destroy)
 
         #Submenu Quantização
-        #quantMenu = tk.Menu(menu, tearoff=0)
-        #quantMenu.add_command(label="128", command=lambda: self.quantizacao(128))
-        #quantMenu.add_command(label="64", command=lambda: self.quantizacao(64))
-        #quantMenu.add_command(label="32", command=lambda: self.quantizacao(32))
-        #quantMenu.add_command(label="16", command=lambda: self.quantizacao(16))
-        #quantMenu.add_command(label="8", command=lambda: self.quantizacao(8))
-        #quantMenu.add_command(label="4", command=lambda: self.quantizacao(4))
-        #quantMenu.add_command(label="2", command=lambda: self.quantizacao(2))
+        quantMenu = tk.Menu(menu, tearoff=0)
+        quantMenu.add_command(label="128", command=lambda: self.quantizacao(128))
+        quantMenu.add_command(label="64", command=lambda: self.quantizacao(64))
+        quantMenu.add_command(label="32", command=lambda: self.quantizacao(32))
+        quantMenu.add_command(label="16", command=lambda: self.quantizacao(16))
+        quantMenu.add_command(label="8", command=lambda: self.quantizacao(8))
+        quantMenu.add_command(label="4", command=lambda: self.quantizacao(4))
+        quantMenu.add_command(label="2", command=lambda: self.quantizacao(2))
 
         #Menu Ferramentas
         toolsMenu = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label="Ferramentas", menu=toolsMenu)
         #toolsMenu.add_command(label="Tons de cinza", command=self.cinza)
-        #toolsMenu.add_command(label="Binarização", command=self.binarizacao)
-        #toolsMenu.add_cascade(label='Quantização', menu=quantMenu)
+        toolsMenu.add_command(label="Binarização", command=self.binarizacao)
+        toolsMenu.add_cascade(label='Quantização', menu=quantMenu)
         toolsMenu.add_command(label="Remoção de ruído", command=self.ruido)
         toolsMenu.add_command(label="Erosão", command=self.erosao)
         toolsMenu.add_command(label="Inverter tons", command=self.inverterTons)
