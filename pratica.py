@@ -1,10 +1,13 @@
+
 import svm
+import mlp
 import cv2
+import time
 import numpy as np
 import tkinter as tk
 from PIL import ImageTk, Image
 from tkinter import Frame, StringVar, filedialog
-from numpy.core.defchararray import asarray
+from tkinter.constants import BOTH, BOTTOM, TOP
 from sklearn.cluster import MiniBatchKMeans
 from scipy.ndimage import interpolation as inter
 from matplotlib import pyplot as plt
@@ -32,6 +35,9 @@ class Application(tk.Frame):
         self.image = None
         self.default = None
         self.photoImage = None
+        self.redeSVM = svm.SVM()
+        self.redeMLP = mlp.MLP()
+        #self.redeMahalanobis = mahalanobis.Mahalanobis()
         self.Widgets()
 
     #Método para inserir imagem
@@ -138,6 +144,7 @@ class Application(tk.Frame):
     def projHorizontal(self, image):
         try:
             return np.sum(image, axis=1, keepdims=True) / 255
+            #return np.sum(image, axis=1, keepdims=True)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -145,6 +152,7 @@ class Application(tk.Frame):
     def projVertical(self, image):
         try:
             return np.sum(image, axis=0, keepdims=True) / 255
+            #return np.sum(image, axis=0, keepdims=True)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -190,6 +198,23 @@ class Application(tk.Frame):
             best_angle = angles[scores.index(best_score)]
             data = inter.rotate(image, best_angle, reshape=False, order=0)
             self.convertTkinter(data)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para correção do ângulo das imagens
+    def testeCorrecaoAngulo(self, image):
+        try:
+            delta = 1
+            limit = 30
+            angles = np.arange(-limit, limit + delta, delta)
+            scores = []
+            for angle in angles:
+                hist, score = self.find_score(image, angle)
+                scores.append(score)
+            best_score = max(scores)
+            best_angle = angles[scores.index(best_score)]
+            data = inter.rotate(image, best_angle, reshape=False, order=0)
+            return data
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -246,19 +271,30 @@ class Application(tk.Frame):
         #test_X = test_X.reshape((test_X.shape[0]), 28, 28, 1)
         self. ptrain_X = []
         self.ptest_X = []
+        initial = time.time()
+        self.setText("Início da Importação.")
 
         for i in range(len(train_X)):
             train_X[i] = 255 - train_X[i]
             train_X[i] = cv2.threshold(train_X[i], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            #train_X[i] = self.testeCorrecaoAngulo(train_X[i])
             self.ptrain_X.append(self.projecao(train_X[i]))
 
         for j in range(len(test_X)):
             test_X[j] = 255 - test_X[j]
             test_X[j] = cv2.threshold(test_X[j], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            #test_X[j] = self.testeCorrecaoAngulo(test_X[j])
             self.ptest_X.append(self.projecao(test_X[j]))
+        
+        final = time.time()
+        minutos = int((final - initial) / 60)
+        segundos = int((final - initial) % 60)
 
-        self.redeSVM = svm.SVM(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
-        print("Importação completa")
+        self.setText("Tempo total de execução: " +  str(minutos) + " min, " + str(segundos) + " segundos.")
+
+        self.redeSVM.constructor(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
+        self.redeMLP.constructor(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
+        self.setText("Importação completa.")
 
     #Método para treinar e testar uma SVM
     def trainSVM(self):
@@ -270,8 +306,22 @@ class Application(tk.Frame):
 
     #Método para testar a imagem atual na SVM
     def testSVM(self):
-        self.redeSVM.test([self.projecao(self.redimesionar())])
+        projecao = np.array(self.projecao(self.redimesionar())).astype('int')
+        self.redeSVM.test([projecao])
     
+    #Método para treinar e testar uma MLP
+    def trainMLP(self):
+        self.redeMLP.train()
+
+    #Método para carregar o treino da MLP
+    def loadMLP(self):
+        self.redeMLP.load()
+
+    #Método para testar a imagem atual na MLP
+    def testMLP(self):
+        projecao = np.array(self.projecao(self.redimesionar())).astype('int')
+        self.redeMLP.test([projecao])
+
     #Método para a modificação da label inferior
     def setText(self, text):
         self.var.set(text)
@@ -281,7 +331,7 @@ class Application(tk.Frame):
         self.master.attributes("-fullscreen", True)
 
         frameMain = Frame(self.master)
-        frameMain.pack()
+        frameMain.pack(fill=BOTH, expand=True)
         frameMonitor = Frame(self.master)
         frameMonitor.pack()
 
@@ -297,14 +347,14 @@ class Application(tk.Frame):
         optionMenu.add_command(label="Sair", command=self.master.destroy)
 
         #Submenu Quantização
-        quantMenu = tk.Menu(menu, tearoff=0)
-        quantMenu.add_command(label="128", command=lambda: self.quantizacao(128))
-        quantMenu.add_command(label="64", command=lambda: self.quantizacao(64))
-        quantMenu.add_command(label="32", command=lambda: self.quantizacao(32))
-        quantMenu.add_command(label="16", command=lambda: self.quantizacao(16))
-        quantMenu.add_command(label="8", command=lambda: self.quantizacao(8))
-        quantMenu.add_command(label="4", command=lambda: self.quantizacao(4))
-        quantMenu.add_command(label="2", command=lambda: self.quantizacao(2))
+        #quantMenu = tk.Menu(menu, tearoff=0)
+        #quantMenu.add_command(label="128", command=lambda: self.quantizacao(128))
+        #quantMenu.add_command(label="64", command=lambda: self.quantizacao(64))
+        #quantMenu.add_command(label="32", command=lambda: self.quantizacao(32))
+        #quantMenu.add_command(label="16", command=lambda: self.quantizacao(16))
+        #quantMenu.add_command(label="8", command=lambda: self.quantizacao(8))
+        #quantMenu.add_command(label="4", command=lambda: self.quantizacao(4))
+        #quantMenu.add_command(label="2", command=lambda: self.quantizacao(2))
 
         #Menu Ferramentas
         toolsMenu = tk.Menu(menu, tearoff=0)
@@ -333,17 +383,31 @@ class Application(tk.Frame):
         visualMenu.add_cascade(label="Rotação", menu=rotationMenu)
         visualMenu.add_cascade(label="Inverter eixo", menu=flipMenu)
 
-        #Submenu Redes
+        #Submenu SVM
         svmMenu = tk.Menu(menu, tearoff=0)
         svmMenu.add_command(label="Treinar SVM", command=self.trainSVM)
         svmMenu.add_command(label="Carregar treino", command=self.loadSVM)
         svmMenu.add_command(label="Testar imagem", command=self.testSVM)
+
+        #Submenu MLP
+        mlpMenu = tk.Menu(menu, tearoff=0)
+        mlpMenu.add_command(label="Treinar MLP", command=self.trainMLP)
+        mlpMenu.add_command(label="Carregar treino", command=self.loadMLP)
+        mlpMenu.add_command(label="Testar imagem", command=self.testMLP)
+
+        #Submenu Mahalanobis
+        #mahalanobisMenu = tk.Menu(menu, tearoff=0)
+        #mahalanobisMenu.add_command(label="Treinar MLP", command=self.trainMahalanobis)
+        #mahalanobisMenu.add_command(label="Carregar treino", command=self.loadMahalanobis)
+        #mahalanobisMenu.add_command(label="Testar imagem", command=self.testMahalanobis)
 
         #Menu Redes
         redeMenu = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label="Redes", menu=redeMenu)
         redeMenu.add_command(label="Import Dataset", command=self.loadDataset)
         redeMenu.add_cascade(label="SVM", menu=svmMenu)
+        redeMenu.add_cascade(label="MLP", menu=mlpMenu)
+        #redeMenu.add_cascade(label="Mahalanobis", menu=mahalanobisMenu)
 
         #Label da imagem
         self.lbl_Image = tk.Label(frameMain)

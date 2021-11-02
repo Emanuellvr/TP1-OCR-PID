@@ -5,17 +5,24 @@ from sklearn import metrics
 
 class SVM():
     #Construtor do objeto SVM
-    def __init__(self, train_X, train_Y, test_X, test_Y):
+    def __init__(self):
+        self.train_X = None
+        self.train_Y = None
+        self.test_X = None
+        self.test_Y = None
+        self.rede = None
+
+    #Método para atualizar os atributos da classe
+    def constructor(self, train_X, train_Y, test_X, test_Y):
         self.train_X = train_X
         self.train_Y = train_Y
         self.test_X = test_X
         self.test_Y = test_Y
-        self.rede = None
 
     #Método para treinar e testar a rede
     def train(self):
         initial = time.time()
-        self.rede = svm.SVC(kernel="linear")
+        self.rede = svm.SVC(C=0.05, kernel="linear")
         print("Início do treino")
         self.rede.fit(self.train_X, self.train_Y)
         self.save()
