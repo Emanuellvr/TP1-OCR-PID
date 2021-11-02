@@ -89,6 +89,54 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
+    #Método para binarizar a imagem
+    def binarizacao(self):
+        try:
+            self.default = self.image
+            thresholding = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            self.image = thresholding
+            #self.convertTkinter(thresholding)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para remoção de ruído
+    def ruido(self):
+        try:
+            self.default = self.image
+            noise = cv2.medianBlur(self.image, 5)
+            self.convertTkinter(noise)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+    #Método para encontrar os dígitos na imagem
+    def contorno(self):
+        try:
+            self.default = self.image
+            #image = cv2.imread('./123ab.jpg')
+            image = self.image
+            grey = self.image
+            #thresh = self.image
+            #grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY_INV  + cv2.THRESH_OTSU)[1]
+            contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+            self.preprocessed_digits = []
+            for c in contours:
+                x,y,w,h = cv2.boundingRect(c)
+                
+                cv2.rectangle(image, (x,y), (x+w, y+h), color=(0, 255, 0), thickness=2)
+                digit = thresh[y:y+h, x:x+w]
+                resized_digit = cv2.resize(digit, (18,18))
+                padded_digit = np.pad(resized_digit, ((5,5),(5,5)), "constant", constant_values=0)
+                self.preprocessed_digits.append(padded_digit)
+
+            self.convertTkinter(image)
+        except:
+            print("Erro: Nenhuma imagem foi selecionada.")
+
+        #for i in range(len(self.preprocessed_digits)):
+        #     plt.imshow(self.preprocessed_digits[i], cmap="gray")
+        #     plt.show()
+
     '''
     #Método para quantizar a imagem (preto e branco)
     def quantizacao(self, n):
@@ -120,25 +168,6 @@ class Application(tk.Frame):
         #except:
             #print("Erro: Nenhuma imagem foi selecionada.")
     '''
-
-    #Método para remoção de ruído
-    def ruido(self):
-        try:
-            self.default = self.image
-            noise = cv2.medianBlur(self.image, 5)
-            self.convertTkinter(noise)
-        except:
-            print("Erro: Nenhuma imagem foi selecionada.")
-
-    #Método para binarizar a imagem
-    def binarizacao(self):
-        try:
-            self.default = self.image
-            thresholding = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            self.image = thresholding
-            #self.convertTkinter(thresholding)
-        except:
-            print("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para extrair a projeção horizontal da imagem
     def projHorizontal(self, image):
@@ -266,24 +295,27 @@ class Application(tk.Frame):
 
     #Menu para import do dataset Keras
     def loadDataset(self):
+        self.setText("Início da Importação.")
+        initial = time.time()
+
         (train_X, self.train_Y), (test_X, self.test_Y) = mnist.load_data()
         #train_X = train_X.reshape((train_X.shape[0]), 28, 28, 1)
         #test_X = test_X.reshape((test_X.shape[0]), 28, 28, 1)
-        self. ptrain_X = []
+        self.ptrain_X = []
         self.ptest_X = []
-        initial = time.time()
-        self.setText("Início da Importação.")
 
+        train_X = 255 - train_X
         for i in range(len(train_X)):
-            train_X[i] = 255 - train_X[i]
+            #train_X[i] = 255 - train_X[i]
             train_X[i] = cv2.threshold(train_X[i], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            #train_X[i] = self.testeCorrecaoAngulo(train_X[i])
+            train_X[i] = self.testeCorrecaoAngulo(train_X[i])
             self.ptrain_X.append(self.projecao(train_X[i]))
 
+        test_X = 255 - test_X
         for j in range(len(test_X)):
-            test_X[j] = 255 - test_X[j]
+            #test_X[j] = 255 - test_X[j]
             test_X[j] = cv2.threshold(test_X[j], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            #test_X[j] = self.testeCorrecaoAngulo(test_X[j])
+            test_X[j] = self.testeCorrecaoAngulo(test_X[j])
             self.ptest_X.append(self.projecao(test_X[j]))
         
         final = time.time()
@@ -294,7 +326,6 @@ class Application(tk.Frame):
 
         self.redeSVM.constructor(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
         self.redeMLP.constructor(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
-        self.setText("Importação completa.")
 
     #Método para treinar e testar uma SVM
     def trainSVM(self):
@@ -306,8 +337,13 @@ class Application(tk.Frame):
 
     #Método para testar a imagem atual na SVM
     def testSVM(self):
-        projecao = np.array(self.projecao(self.redimesionar())).astype('int')
-        self.redeSVM.test([projecao])
+        projecao = []
+
+        for i in range(len(self.preprocessed_digits)):
+            projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
+        self.redeSVM.test(projecao)
+        #projecao = np.array(self.projecao(self.redimesionar())).astype('int')
+        #self.redeSVM.test([projecao])
     
     #Método para treinar e testar uma MLP
     def trainMLP(self):
@@ -319,8 +355,13 @@ class Application(tk.Frame):
 
     #Método para testar a imagem atual na MLP
     def testMLP(self):
-        projecao = np.array(self.projecao(self.redimesionar())).astype('int')
-        self.redeMLP.test([projecao])
+        projecao = []
+
+        for i in range(len(self.preprocessed_digits)):
+            projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
+        self.redeMLP.test(projecao)
+        #projecao = np.array(self.projecao(self.redimesionar())).astype('int')
+        #self.redeMLP.test([projecao])
 
     #Método para a modificação da label inferior
     def setText(self, text):
@@ -366,6 +407,7 @@ class Application(tk.Frame):
         toolsMenu.add_command(label="Erosão", command=self.erosao)
         toolsMenu.add_command(label="Inverter tons", command=self.inverterTons)
         toolsMenu.add_command(label="Correção de ângulo", command=self.correcaoAngulo)
+        toolsMenu.add_command(label="Encontrar dígitos", command=self.contorno)
 
         #Submenu Rotação
         rotationMenu = tk.Menu(menu, tearoff=0)
