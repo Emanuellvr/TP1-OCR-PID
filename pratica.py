@@ -1,16 +1,17 @@
+import mahalanobis
 import svm
 import mlp
-import cv2
-import time
-import numpy as np
-import tkinter as tk
-from PIL import ImageTk, Image
+import cv2                                          #pip install opencv-python
+import time                                         #pip install python-time
+import numpy as np                                  #pip install numpy
+import tkinter as tk                                #pip install tkinter
+from PIL import ImageTk, Image                      #pip install pillow
 from tkinter import Frame, StringVar, filedialog
 from tkinter.constants import BOTH, BOTTOM, TOP
-from sklearn.cluster import MiniBatchKMeans
-from scipy.ndimage import interpolation as inter
-from matplotlib import pyplot as plt
-from keras.datasets import mnist           #pip install tensorflow     pip install keras
+from sklearn.cluster import MiniBatchKMeans         #pip install sklearn
+from scipy.ndimage import interpolation as inter    #pip install scipy
+from matplotlib import pyplot as plt                #pip install matplotlib
+from keras.datasets import mnist                    #pip install tensorflow     pip install keras
 
 '''
 Git:
@@ -18,13 +19,6 @@ git pull                        Atualiza com a versão do github.
 git add 'nomeDoArquivo'         Prepara o arquivo para ser enviado.
 git commit -m "Comentário"      Comita o arquivo.
 git push                        Envia o arquivo para o github.
-
-Erros:
-Rever quantização (uma solução pra colorida e uma solução para preto e branco) {
-    Na quantização para a imagem preto e branco: Remoção de ruído após quantização.
-}
-Na projeção:
-os valores da matriz possuem um ponto no final. Não sei se isso ocorre pelos números serem float, ou se é erro
 '''
 
 class Application(tk.Frame):
@@ -36,7 +30,7 @@ class Application(tk.Frame):
         self.photoImage = None
         self.redeSVM = svm.SVM()
         self.redeMLP = mlp.MLP()
-        #self.redeMahalanobis = mahalanobis.Mahalanobis()
+        self.redeMahalanobis = mahalanobis.Mahalanobis()
         self.Widgets()
 
     #Método para inserir imagem
@@ -58,12 +52,11 @@ class Application(tk.Frame):
     #Método para converter a imagem para abrir no Tkinter
     def convertTkinter(self, image):
         self.image = image
-        try:
-            b, g, r = cv2.split(image)
-            image = cv2.merge((r, g, b))
-        except:
-            print("Conversão inválida (Imagem em tons de cinza).")
-
+        #try:
+            #b, g, r = cv2.split(image)
+            #image = cv2.merge((r, g, b))
+        #except:
+            #print("Conversão inválida (Imagem em tons de cinza).")
         self.atualizarTela(image)
 
     #Método para atualizar a label com a imagem
@@ -111,14 +104,13 @@ class Application(tk.Frame):
     def contorno(self):
         try:
             self.default = self.image
-            #image = cv2.imread('./123ab.jpg')
             image = self.image
             grey = self.image
-            #thresh = self.image
-            #grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
             thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY_INV  + cv2.THRESH_OTSU)[1]
             contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
             self.preprocessed_digits = []
+
             for c in contours:
                 x,y,w,h = cv2.boundingRect(c)
                 
@@ -132,10 +124,11 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
-        #for i in range(len(self.preprocessed_digits)):
-        #     plt.imshow(self.preprocessed_digits[i], cmap="gray")
-        #     plt.show()
+        for i in range(len(self.preprocessed_digits)):
+             plt.imshow(self.preprocessed_digits[i], cmap="gray")
+             plt.show()
 
+    '''
     #Método para quantizar a imagem (preto e branco)
     def quantizacao(self, n):
         try:
@@ -148,7 +141,6 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
-    '''
     #Método para quantizar a imagem (colorida)
     def quantizacao(self, n):
         #try:
@@ -229,6 +221,7 @@ class Application(tk.Frame):
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
+    '''
     #Método para correção do ângulo das imagens
     def testeCorrecaoAngulo(self, image):
         try:
@@ -245,6 +238,7 @@ class Application(tk.Frame):
             return data
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
+    '''
 
     #Método para erosão da imagem
     def erosao(self):
@@ -303,16 +297,14 @@ class Application(tk.Frame):
         self.ptrain_X = []
         self.ptest_X = []
 
-        train_X = 255 - train_X
+        #train_X = 255 - train_X
         for i in range(len(train_X)):
-            train_X[i] = 255 - train_X[i]
             train_X[i] = cv2.threshold(train_X[i], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             #train_X[i] = self.testeCorrecaoAngulo(train_X[i])
             self.ptrain_X.append(self.projecao(train_X[i]))
 
-        test_X = 255 - test_X
+        #test_X = 255 - test_X
         for j in range(len(test_X)):
-            test_X[j] = 255 - test_X[j]
             test_X[j] = cv2.threshold(test_X[j], 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
             #test_X[j] = self.testeCorrecaoAngulo(test_X[j])
             self.ptest_X.append(self.projecao(test_X[j]))
@@ -325,42 +317,59 @@ class Application(tk.Frame):
 
         self.redeSVM.constructor(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
         self.redeMLP.constructor(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
+        self.redeMahalanobis.constructor(np.array(self.ptrain_X), np.array(self.train_Y), np.array(self.ptest_X), np.array(self.test_Y))
+
+    #Método para treinar e testar um classificador de Mahalanobis
+    def trainMahalanobis(self):
+        self.setText(self.redeMahalanobis.train() + "\n" + self.redeMahalanobis.getTime())
+
+    #Método para carregar o treino do classificador de Mahalanobis
+    def loadMahalanobis(self):
+        self.setText(self.redeMahalanobis.load())
+
+    #Método para testar a imagem atual no classificador de Mahalanobis
+    def testMahalanobis(self):
+        projecao = []
+
+        #for i in range(len(self.preprocessed_digits)-1, -1, -1):
+        for i in range(len(self.preprocessed_digits)):
+            projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
+        self.setText(self.redeMahalanobis.test(projecao))
 
     #Método para treinar e testar uma SVM
     def trainSVM(self):
-        self.redeSVM.train()
+        self.setText(self.redeSVM.train() + "\n" + self.redeSVM.getTime())
+        self.redeSVM.confusion()
 
     #Método para carregar o treino da SVM
     def loadSVM(self):
-        self.redeSVM.load()
+        self.setText(self.redeSVM.load())
 
     #Método para testar a imagem atual na SVM
     def testSVM(self):
         projecao = []
 
-        for i in range(len(self.preprocessed_digits)-1, -1, -1):
+        #for i in range(len(self.preprocessed_digits)-1, -1, -1):
+        for i in range(len(self.preprocessed_digits)):
             projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
-        self.redeSVM.test(projecao)
-        #projecao = np.array(self.projecao(self.redimesionar())).astype('int')
-        #self.redeSVM.test([projecao])
+        self.setText(self.redeSVM.test(projecao))
     
     #Método para treinar e testar uma MLP
     def trainMLP(self):
-        self.redeMLP.train()
+        self.setText(self.redeMLP.train() + "\n" + self.redeMLP.getTime())
 
     #Método para carregar o treino da MLP
     def loadMLP(self):
-        self.redeMLP.load()
+        self.setText(self.redeMLP.load())
 
     #Método para testar a imagem atual na MLP
     def testMLP(self):
         projecao = []
 
-        for i in range(len(self.preprocessed_digits)-1, -1, -1):
+        #for i in range(len(self.preprocessed_digits)-1, -1, -1):
+        for i in range(len(self.preprocessed_digits)):
             projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
-        self.redeMLP.test(projecao)
-        #projecao = np.array(self.projecao(self.redimesionar())).astype('int')
-        #self.redeMLP.test([projecao])
+        self.setText(self.redeMLP.test(projecao))
 
     #Método para a modificação da label inferior
     def setText(self, text):
@@ -387,21 +396,21 @@ class Application(tk.Frame):
         optionMenu.add_command(label="Sair", command=self.master.destroy)
 
         #Submenu Quantização
-        quantMenu = tk.Menu(menu, tearoff=0)
-        quantMenu.add_command(label="128", command=lambda: self.quantizacao(128))
-        quantMenu.add_command(label="64", command=lambda: self.quantizacao(64))
-        quantMenu.add_command(label="32", command=lambda: self.quantizacao(32))
-        quantMenu.add_command(label="16", command=lambda: self.quantizacao(16))
-        quantMenu.add_command(label="8", command=lambda: self.quantizacao(8))
-        quantMenu.add_command(label="4", command=lambda: self.quantizacao(4))
-        quantMenu.add_command(label="2", command=lambda: self.quantizacao(2))
+        #quantMenu = tk.Menu(menu, tearoff=0)
+        #quantMenu.add_command(label="128", command=lambda: self.quantizacao(128))
+        #quantMenu.add_command(label="64", command=lambda: self.quantizacao(64))
+        #quantMenu.add_command(label="32", command=lambda: self.quantizacao(32))
+        #quantMenu.add_command(label="16", command=lambda: self.quantizacao(16))
+        #quantMenu.add_command(label="8", command=lambda: self.quantizacao(8))
+        #quantMenu.add_command(label="4", command=lambda: self.quantizacao(4))
+        #quantMenu.add_command(label="2", command=lambda: self.quantizacao(2))
 
         #Menu Ferramentas
         toolsMenu = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label="Ferramentas", menu=toolsMenu)
         #toolsMenu.add_command(label="Tons de cinza", command=self.cinza)
         toolsMenu.add_command(label="Binarização", command=self.binarizacao)
-        toolsMenu.add_cascade(label='Quantização', menu=quantMenu)
+        #toolsMenu.add_cascade(label='Quantização', menu=quantMenu)
         toolsMenu.add_command(label="Remoção de ruído", command=self.ruido)
         toolsMenu.add_command(label="Erosão", command=self.erosao)
         toolsMenu.add_command(label="Inverter tons", command=self.inverterTons)
@@ -424,6 +433,12 @@ class Application(tk.Frame):
         visualMenu.add_cascade(label="Rotação", menu=rotationMenu)
         visualMenu.add_cascade(label="Inverter eixo", menu=flipMenu)
 
+        #Submenu Mahalanobis
+        mahalanobisMenu = tk.Menu(menu, tearoff=0)
+        mahalanobisMenu.add_command(label="Treinar Mahalanobis", command=self.trainMahalanobis)
+        mahalanobisMenu.add_command(label="Carregar treino", command=self.loadMahalanobis)
+        mahalanobisMenu.add_command(label="Testar imagem", command=self.testMahalanobis)
+
         #Submenu SVM
         svmMenu = tk.Menu(menu, tearoff=0)
         svmMenu.add_command(label="Treinar SVM", command=self.trainSVM)
@@ -436,19 +451,13 @@ class Application(tk.Frame):
         mlpMenu.add_command(label="Carregar treino", command=self.loadMLP)
         mlpMenu.add_command(label="Testar imagem", command=self.testMLP)
 
-        #Submenu Mahalanobis
-        #mahalanobisMenu = tk.Menu(menu, tearoff=0)
-        #mahalanobisMenu.add_command(label="Treinar MLP", command=self.trainMahalanobis)
-        #mahalanobisMenu.add_command(label="Carregar treino", command=self.loadMahalanobis)
-        #mahalanobisMenu.add_command(label="Testar imagem", command=self.testMahalanobis)
-
         #Menu Redes
         redeMenu = tk.Menu(menu, tearoff=0)
         menu.add_cascade(label="Redes", menu=redeMenu)
         redeMenu.add_command(label="Import Dataset", command=self.loadDataset)
+        redeMenu.add_cascade(label="Mahalanobis", menu=mahalanobisMenu)
         redeMenu.add_cascade(label="SVM", menu=svmMenu)
         redeMenu.add_cascade(label="MLP", menu=mlpMenu)
-        #redeMenu.add_cascade(label="Mahalanobis", menu=mahalanobisMenu)
 
         #Label da imagem
         self.lbl_Image = tk.Label(frameMain)
