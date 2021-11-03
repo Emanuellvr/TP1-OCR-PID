@@ -21,7 +21,7 @@ class Mahalanobis():
         self.test_X = test_X
         self.test_Y = test_Y
     
-        #Método para treinar e testar a rede
+    #Método para treinar e testar a rede
     def train(self):
         self.initial = time.time()
         self.rede = DistanceClassifier()
@@ -40,8 +40,11 @@ class Mahalanobis():
 
     #Método para carregar os dados de treino da rede
     def load(self):
-        self.rede = pickle.load(open("treinoMDC.mdc", 'rb'))
-        return "Treino carregado com sucesso!"
+        try:
+            self.rede = pickle.load(open("treinoMDC.mdc", 'rb'))
+            return "Treino carregado com sucesso!"
+        except:
+            return "Erro. O arquivo de treino não foi encontrado."
 
     #Método para testar a rede
     def test(self, image):

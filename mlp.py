@@ -40,8 +40,11 @@ class MLP():
 
     #Método para carregar os dados de treino da rede
     def load(self):
-        self.rede = pickle.load(open("treinoMLP.mlp", 'rb'))
-        return "Treino carregado com sucesso!"
+        try:
+            self.rede = pickle.load(open("treinoMLP.mlp", 'rb'))
+            return "Treino carregado com sucesso!"
+        except:
+            return "Erro. O arquivo de treino não foi encontrado."
 
     #Método para testar a rede
     def test(self, image):

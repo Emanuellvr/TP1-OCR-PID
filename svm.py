@@ -12,7 +12,6 @@ class SVM():
         self.test_X = None
         self.test_Y = None
         self.rede = None
-        self.prediction = None
 
     #Método para atualizar os atributos da classe
     def constructor(self, train_X, train_Y, test_X, test_Y):
@@ -40,8 +39,11 @@ class SVM():
 
     #Método para carregar os dados de treino da rede
     def load(self):
-        self.rede = pickle.load(open("treinoSVM.svm", 'rb'))
-        return "Treino carregado com sucesso!"
+        try:
+            self.rede = pickle.load(open("treinoSVM.svm", 'rb'))
+            return "Treino carregado com sucesso!"
+        except:
+            return "Erro. O arquivo de treino não foi encontrado."
 
     #Método para testar a rede
     def test(self, image):

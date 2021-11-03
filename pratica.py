@@ -13,14 +13,6 @@ from scipy.ndimage import interpolation as inter    #pip install scipy
 from matplotlib import pyplot as plt                #pip install matplotlib
 from keras.datasets import mnist                    #pip install tensorflow     pip install keras
 
-'''
-Git:
-git pull                        Atualiza com a versão do github.
-git add 'nomeDoArquivo'         Prepara o arquivo para ser enviado.
-git commit -m "Comentário"      Comita o arquivo.
-git push                        Envia o arquivo para o github.
-'''
-
 class Application(tk.Frame):
     #Construtor do objeto Application
     def __init__(self, master):
@@ -28,9 +20,9 @@ class Application(tk.Frame):
         self.image = None
         self.default = None
         self.photoImage = None
+        self.redeMahalanobis = mahalanobis.Mahalanobis()
         self.redeSVM = svm.SVM()
         self.redeMLP = mlp.MLP()
-        self.redeMahalanobis = mahalanobis.Mahalanobis()
         self.Widgets()
 
     #Método para inserir imagem
@@ -64,12 +56,15 @@ class Application(tk.Frame):
         self.photoImage = ImageTk.PhotoImage(Image.fromarray(image))
         self.lbl_Image.configure(image=self.photoImage)
 
+    '''
     #Método para redimensionar o tamanho da imagem
     def redimesionar(self):
         try:
+            self.default = self.image
             return cv2.resize(self.image, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
+    '''
 
     #Método para converter a imagem para tons de cinza
     def cinza(self):
@@ -105,9 +100,9 @@ class Application(tk.Frame):
         try:
             self.default = self.image
             image = self.image
-            grey = self.image
+            gray = self.image
 
-            thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY_INV  + cv2.THRESH_OTSU)[1]
+            thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV  + cv2.THRESH_OTSU)[1]
             contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
             self.preprocessed_digits = []
 
@@ -181,8 +176,7 @@ class Application(tk.Frame):
         try:
             horizontal = self.projHorizontal(image)
             vertical = self.projVertical(image)
-            concatenate = np.concatenate((np.array(horizontal).transpose(), np.array(vertical)), axis=None)
-            return concatenate
+            return   np.concatenate((np.array(horizontal).transpose(), np.array(vertical)), axis=None)
         except:
             print("Erro: Nenhuma imagem foi selecionada.")
 
@@ -219,26 +213,7 @@ class Application(tk.Frame):
             data = inter.rotate(image, best_angle, reshape=False, order=0)
             self.convertTkinter(data)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
-
-    '''
-    #Método para correção do ângulo das imagens
-    def testeCorrecaoAngulo(self, image):
-        try:
-            delta = 1
-            limit = 30
-            angles = np.arange(-limit, limit + delta, delta)
-            scores = []
-            for angle in angles:
-                hist, score = self.find_score(image, angle)
-                scores.append(score)
-            best_score = max(scores)
-            best_angle = angles[scores.index(best_score)]
-            data = inter.rotate(image, best_angle, reshape=False, order=0)
-            return data
-        except:
-            print("Erro: Nenhuma imagem foi selecionada.")
-    '''
+            print("Erro: Nenhuma imagem foi selecionada.") 
 
     #Método para erosão da imagem
     def erosao(self):
@@ -451,9 +426,9 @@ class Application(tk.Frame):
         mlpMenu.add_command(label="Carregar treino", command=self.loadMLP)
         mlpMenu.add_command(label="Testar imagem", command=self.testMLP)
 
-        #Menu Redes
+        #Menu Classificadores
         redeMenu = tk.Menu(menu, tearoff=0)
-        menu.add_cascade(label="Redes", menu=redeMenu)
+        menu.add_cascade(label="Classificadores", menu=redeMenu)
         redeMenu.add_command(label="Import Dataset", command=self.loadDataset)
         redeMenu.add_cascade(label="Mahalanobis", menu=mahalanobisMenu)
         redeMenu.add_cascade(label="SVM", menu=svmMenu)
