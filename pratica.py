@@ -7,7 +7,7 @@ import numpy as np                                  #pip install numpy
 import tkinter as tk                                #pip install tkinter
 from PIL import ImageTk, Image                      #pip install pillow
 from tkinter import Frame, StringVar, filedialog
-from tkinter.constants import BOTH, BOTTOM, TOP
+from tkinter.constants import BOTH, BOTTOM, TOP, X, Y
 from sklearn.cluster import MiniBatchKMeans         #pip install sklearn
 from scipy.ndimage import interpolation as inter    #pip install scipy
 from matplotlib import pyplot as plt                #pip install matplotlib
@@ -53,18 +53,31 @@ class Application(tk.Frame):
 
     #Método para atualizar a label com a imagem
     def atualizarTela(self, image):
+        width, height = np.array(image).shape
+        print(width, height)
+
+        if height > 650:
+            aux = height/650
+            print(aux)
+            image = self.redimesionar(image, int(width/aux), 650)
+            width, height = np.array(image).shape
+
+            if width > 1360:
+                image = self.redimesionar(image, 1360, 650)
+        elif width > 1360:
+            aux = width/1360
+            image = self.redimesionar(image, 1360, int(height/aux))
+            width, height = np.array(image).shape
+
+            if height > 650:
+                image = self.redimesionar(image, 1360, 650)
+
         self.photoImage = ImageTk.PhotoImage(Image.fromarray(image))
         self.lbl_Image.configure(image=self.photoImage)
 
-    '''
     #Método para redimensionar o tamanho da imagem
-    def redimesionar(self):
-        try:
-            self.default = self.image
-            return cv2.resize(self.image, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
-        except:
-            print("Erro: Nenhuma imagem foi selecionada.")
-    '''
+    def redimesionar(self, image, width, height):
+        return cv2.resize(image, dsize=(width, height), interpolation=cv2.INTER_CUBIC)
 
     #Método para converter a imagem para tons de cinza
     def cinza(self):
@@ -74,7 +87,7 @@ class Application(tk.Frame):
             self.image = gray
             #self.convertTkinter(gray)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para binarizar a imagem
     def binarizacao(self):
@@ -84,7 +97,7 @@ class Application(tk.Frame):
             self.image = thresholding
             self.convertTkinter(thresholding)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para remoção de ruído
     def ruido(self):
@@ -93,7 +106,7 @@ class Application(tk.Frame):
             noise = cv2.medianBlur(self.image, 5)
             self.convertTkinter(noise)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para encontrar os dígitos na imagem
     def contorno(self):
@@ -117,7 +130,7 @@ class Application(tk.Frame):
 
             self.convertTkinter(image)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
         for i in range(len(self.preprocessed_digits)):
              plt.imshow(self.preprocessed_digits[i], cmap="gray")
@@ -134,7 +147,7 @@ class Application(tk.Frame):
             quantizado = np.uint8(quantizacao) * bucket
             self.convertTkinter(np.array(quantizado))
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para quantizar a imagem (colorida)
     def quantizacao(self, n):
@@ -152,7 +165,7 @@ class Application(tk.Frame):
             #image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
             self.convertTkinter(quantizado)
         #except:
-            #print("Erro: Nenhuma imagem foi selecionada.")
+            #self.setText("Erro: Nenhuma imagem foi selecionada.")
     '''
 
     #Método para extrair a projeção horizontal da imagem
@@ -161,7 +174,7 @@ class Application(tk.Frame):
             return np.sum(image, axis=1, keepdims=True) / 255
             #return np.sum(image, axis=1, keepdims=True)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para extrair a projeção vertical da imagem
     def projVertical(self, image):
@@ -169,7 +182,7 @@ class Application(tk.Frame):
             return np.sum(image, axis=0, keepdims=True) / 255
             #return np.sum(image, axis=0, keepdims=True)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para extrair as projeções da imagem e concatená-las
     def projecao(self, image):
@@ -178,7 +191,7 @@ class Application(tk.Frame):
             vertical = self.projVertical(image)
             return   np.concatenate((np.array(horizontal).transpose(), np.array(vertical)), axis=None)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para inverter a paleta de cores da imagem
     def inverterTons(self):
@@ -187,7 +200,7 @@ class Application(tk.Frame):
             invert = 255 - self.image
             self.convertTkinter(invert)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para extração do histograma da imagem
     def find_score(self, arr, angle):
@@ -213,17 +226,17 @@ class Application(tk.Frame):
             data = inter.rotate(image, best_angle, reshape=False, order=0)
             self.convertTkinter(data)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.") 
+            self.setText("Erro: Nenhuma imagem foi selecionada.") 
 
     #Método para erosão da imagem
     def erosao(self):
         try:
             self.default = self.image
-            kernel = np.ones((5, 5), np.uint8)
+            kernel = np.ones((3, 3), np.uint8)
             erode = cv2.erode(self.image, kernel, iterations=1)
             self.convertTkinter(erode)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para rotacionar a imagem 90 graus para a esquerda
     def rot90anti(self):
@@ -232,7 +245,7 @@ class Application(tk.Frame):
             rotate = cv2.rotate(self.image, cv2.ROTATE_90_CLOCKWISE)
             self.convertTkinter(rotate)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para rotacionar a imagem 90 graus para a direita
     def rot90hor(self):
@@ -241,7 +254,7 @@ class Application(tk.Frame):
             rotate = cv2.rotate(self.image, cv2.ROTATE_90_COUNTERCLOCKWISE)
             self.convertTkinter(rotate)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para inverter a imagem horizontalmente
     def invertHor(self):
@@ -250,7 +263,7 @@ class Application(tk.Frame):
             invert = cv2.flip(self.image, 0)
             self.convertTkinter(invert)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Método para inverter a imagem verticalmente
     def invertVert(self):
@@ -259,7 +272,7 @@ class Application(tk.Frame):
             invert = cv2.flip(self.image, 1)
             self.convertTkinter(invert)
         except:
-            print("Erro: Nenhuma imagem foi selecionada.")
+            self.setText("Erro: Nenhuma imagem foi selecionada.")
 
     #Menu para import do dataset Keras
     def loadDataset(self):
@@ -306,10 +319,13 @@ class Application(tk.Frame):
     def testMahalanobis(self):
         projecao = []
 
+        try:
         #for i in range(len(self.preprocessed_digits)-1, -1, -1):
-        for i in range(len(self.preprocessed_digits)):
-            projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
-        self.setText(self.redeMahalanobis.test(projecao))
+            for i in range(len(self.preprocessed_digits)):
+                projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
+            self.setText(self.redeMahalanobis.test(projecao))
+        except:
+            self.setText("Erro, os dígitos não foram destacados na imagem.")
 
     #Método para treinar e testar uma SVM
     def trainSVM(self):
@@ -324,10 +340,13 @@ class Application(tk.Frame):
     def testSVM(self):
         projecao = []
 
-        #for i in range(len(self.preprocessed_digits)-1, -1, -1):
-        for i in range(len(self.preprocessed_digits)):
-            projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
-        self.setText(self.redeSVM.test(projecao))
+        try:
+            #for i in range(len(self.preprocessed_digits)-1, -1, -1):
+            for i in range(len(self.preprocessed_digits)):
+                projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
+            self.setText(self.redeSVM.test(projecao))
+        except:
+            self.setText("Erro, os dígitos não foram destacados na imagem.")
     
     #Método para treinar e testar uma MLP
     def trainMLP(self):
@@ -341,23 +360,25 @@ class Application(tk.Frame):
     def testMLP(self):
         projecao = []
 
-        #for i in range(len(self.preprocessed_digits)-1, -1, -1):
-        for i in range(len(self.preprocessed_digits)):
-            projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
-        self.setText(self.redeMLP.test(projecao))
+        try:
+            #for i in range(len(self.preprocessed_digits)-1, -1, -1):
+            for i in range(len(self.preprocessed_digits)):
+                projecao.append(np.array(self.projecao(self.preprocessed_digits[i])).astype('int'))
+            self.setText(self.redeMLP.test(projecao))
+        except:
+            self.setText("Erro, os dígitos não foram destacados na imagem.")
 
     #Método para a modificação da label inferior
     def setText(self, text):
         self.var.set(text)
+        print(text)
 
     #Método para criação do Canvas e menus
     def Widgets(self):
         self.master.attributes("-fullscreen", True)
 
-        frameMain = Frame(self.master)
-        frameMain.pack(fill=BOTH, expand=True)
-        frameMonitor = Frame(self.master)
-        frameMonitor.pack()
+        frameMain = Frame(self.master, background="#696969")
+        frameMain.pack(expand=True, fill=BOTH)
 
         menu = tk.Menu(self.master)
         self.master.config(menu=menu)
@@ -435,12 +456,12 @@ class Application(tk.Frame):
         redeMenu.add_cascade(label="MLP", menu=mlpMenu)
 
         #Label da imagem
-        self.lbl_Image = tk.Label(frameMain)
+        self.lbl_Image = tk.Label(frameMain, background="#696969")
         self.lbl_Image.pack()
 
         self.var = StringVar()
-        self.lbl_Monitor = tk.Label(frameMonitor, textvariable=self.var)
-        self.lbl_Monitor.pack()
+        self.lbl_Monitor = tk.Label(frameMain, textvariable=self.var, background="#808080", font="Arial 14", fg="#ffffff", height=4)
+        self.lbl_Monitor.pack(side=BOTTOM, fill=X)
 
 #Criação do objeto Application e loop principal
 root = tk.Tk()
