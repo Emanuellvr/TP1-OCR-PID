@@ -54,11 +54,9 @@ class Application(tk.Frame):
     #Método para atualizar a label com a imagem
     def atualizarTela(self, image):
         width, height = np.array(image).shape
-        print(width, height)
 
         if height > 650:
             aux = height/650
-            print(aux)
             image = self.redimesionar(image, int(width/aux), 650)
             width, height = np.array(image).shape
 
